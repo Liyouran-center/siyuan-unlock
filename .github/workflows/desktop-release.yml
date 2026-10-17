@@ -81,9 +81,10 @@ jobs:
         shell: bash
         env:
           OFFICIAL_BUILD_MARKER: ${{ secrets.SIYUAN_UNLOCK_OFFICIAL_BUILD }}
+          RELEASE_REPOSITORY: ${{ vars.RELEASE_REPOSITORY || 'appdev/siyuan-unlock' }}
         run: |
-          if [[ "${GITHUB_REPOSITORY}" != "appdev/siyuan-unlock" || -z "${OFFICIAL_BUILD_MARKER}" ]]; then
-            echo "::error::This release workflow can only run in the official repository."
+          if [[ "${GITHUB_REPOSITORY}" != "${RELEASE_REPOSITORY}" || -z "${OFFICIAL_BUILD_MARKER}" ]]; then
+            echo "::error::This release workflow must run in ${RELEASE_REPOSITORY} and needs the SIYUAN_UNLOCK_OFFICIAL_BUILD secret."
             exit 1
           fi
 
