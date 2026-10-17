@@ -2,11 +2,11 @@ diff --git a/kernel/api/setting.go b/kernel/api/setting.go
 index c6fe820..150ae62 100644
 --- a/kernel/api/setting.go
 +++ b/kernel/api/setting.go
-@@ -830,18 +830,23 @@ var getPublish = contractHandler(apicontract.GetPublish, func(c *gin.Context, re
+@@ -822,18 +822,23 @@ var getPublish = contractHandler(apicontract.GetPublish, func(c *gin.Context, re
  })
  
  var getCloudUser = contractHandler(apicontract.GetCloudUser, func(c *gin.Context, request apicontract.SettingCloudUserRequest) apicontract.Response[*apicontract.SettingUser] {
--	user, err := model.GetCloudUser(request.Token, request.Cached)
+-	user, err := model.RefreshUser(request.Token)
 -	data := settingUserPayload(user)
 -	if err == nil {
 -		return apicontract.Success(data)

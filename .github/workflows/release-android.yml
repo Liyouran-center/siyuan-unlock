@@ -93,7 +93,7 @@ jobs:
       - name: gomobile
         working-directory: ${{ github.workspace }}/go
         run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gomobile@2553ed8ce294
           gomobile init
 
       - name: Set up java
@@ -105,7 +105,7 @@ jobs:
 
       - name: Building Android Kernel
         run: |
-          gomobile bind --tags "fts5 sqlcipher" -androidapi 21 -target='android/arm64' -ldflags '-s -w' -v -o "${{ matrix.config.kernel_path }}" ./
+          gomobile bind --tags "fts5 sqlcipher" -androidapi 26 -target='android/arm64' -ldflags '-s -w' -v -o "${{ matrix.config.kernel_path }}" ./
           ls -la "${{ matrix.config.kernel_path }}"
         working-directory: ${{ github.workspace }}/siyuan-note/siyuan/kernel/mobile
         env:
