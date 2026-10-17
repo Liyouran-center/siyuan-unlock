@@ -24,9 +24,10 @@ jobs:
         shell: bash
         env:
           OFFICIAL_BUILD_MARKER: ${{ secrets.SIYUAN_UNLOCK_OFFICIAL_BUILD }}
+          RELEASE_REPOSITORY: ${{ vars.RELEASE_REPOSITORY || 'appdev/siyuan-unlock' }}
         run: |
-          if [[ "${GITHUB_REPOSITORY}" != "appdev/siyuan-unlock" || -z "${OFFICIAL_BUILD_MARKER}" ]]; then
-            echo "::error::This release workflow can only run in the official repository."
+          if [[ "${GITHUB_REPOSITORY}" != "${RELEASE_REPOSITORY}" || -z "${OFFICIAL_BUILD_MARKER}" ]]; then
+            echo "::error::This release workflow must run in ${RELEASE_REPOSITORY} and needs the SIYUAN_UNLOCK_OFFICIAL_BUILD secret."
             exit 1
           fi
 
@@ -93,7 +94,7 @@ jobs:
       - name: gomobile
         working-directory: ${{ github.workspace }}/go
         run: |
-          go install golang.org/x/mobile/cmd/gomobile@latest
+          go install golang.org/x/mobile/cmd/gomobile@2553ed8ce294
           gomobile init
 
       - name: Set up java
@@ -105,7 +106,7 @@ jobs:
 
       - name: Building Android Kernel
         run: |
-          gomobile bind --tags "fts5 sqlcipher" -androidapi 21 -target='android/arm64' -ldflags '-s -w' -v -o "${{ matrix.config.kernel_path }}" ./
+          gomobile bind --tags "fts5 sqlcipher" -androidapi 26 -target='android/arm64' -ldflags '-s -w' -v -o "${{ matrix.config.kernel_path }}" ./
           ls -la "${{ matrix.config.kernel_path }}"
         working-directory: ${{ github.workspace }}/siyuan-note/siyuan/kernel/mobile
         env:
