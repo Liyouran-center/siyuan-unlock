@@ -1,0 +1,107 @@
+diff --git a/kernel/conf/system.go b/kernel/conf/system.go
+index c1f30b5..24eca99 100644
+--- a/kernel/conf/system.go
++++ b/kernel/conf/system.go
+@@ -73,7 +73,7 @@ type Onboarding struct {
+ func NewSystem() *System {
+ 	return &System{
+ 		NetworkProxy:       &NetworkProxy{},
+-		DownloadInstallPkg: true,
++		DownloadInstallPkg: false,
+ 		UpdateChannel:      UpdateChannelStable,
+ 	}
+ }
+diff --git a/kernel/model/updater.go b/kernel/model/updater.go
+index 480277b..85eadb9 100644
+--- a/kernel/model/updater.go
++++ b/kernel/model/updater.go
+@@ -286,6 +286,14 @@ func isVersionUpToDate(releaseVer string) bool {
+ var skipInstallPkgPlatformCached = -1
+ 
+ func skipNewVerInstallPkg() bool {
++	// Conf.System.DownloadInstallPkg(自动下载更新安装包) 强制赋值为false
++	if system := Conf.LoadSystem(); nil != system && system.DownloadInstallPkg {
++		updated := *system
++		updated.DownloadInstallPkg = false
++		Conf.System.Store(&updated)
++		Conf.Save()
++	}
++
+ 	confSystemSnapshot := Conf.LoadSystem()
+ 
+ 	if skipInstallPkgPlatformCached == -1 {
+diff --git a/kernel/model/updater_release.go b/kernel/model/updater_release.go
+index a06ec7b..5c56880 100644
+--- a/kernel/model/updater_release.go
++++ b/kernel/model/updater_release.go
+@@ -39,8 +39,8 @@ import (
+ )
+ 
+ const (
+-	githubReleasesURL            = "https://api.github.com/repos/siyuan-note/siyuan/releases?per_page=100"
+-	githubReleaseURLPrefix       = "https://github.com/siyuan-note/siyuan/releases/tag/v"
++	githubReleasesURL            = "https://api.github.com/repos/appdev/siyuan-unlock/releases?per_page=100"
++	githubReleaseURLPrefix       = "https://github.com/appdev/siyuan-unlock/releases/tag/v"
+ 	githubAPIReleaseCacheSeconds = int64(6 * 60 * 60)
+ 	maxChecksumManifestSize      = int64(1024 * 1024)
+ )
+@@ -81,9 +81,6 @@ var (
+ 
+ func getUpdateRelease(force bool) (*updateRelease, error) {
+ 	channel := Conf.System.Load().UpdateChannel
+-	if conf.UpdateChannelStable == channel {
+-		return getStableUpdateRelease(force)
+-	}
+ 	if !isValidUpdateChannel(channel) {
+ 		return nil, errors.New("update channel is invalid")
+ 	}
+diff --git a/kernel/model/updater_release_test.go b/kernel/model/updater_release_test.go
+index f1ebd35..2c561f3 100644
+--- a/kernel/model/updater_release_test.go
++++ b/kernel/model/updater_release_test.go
+@@ -21,10 +21,45 @@ import (
+ 	"path/filepath"
+ 	"strings"
+ 	"testing"
++	"time"
+ 
+ 	"github.com/siyuan-note/siyuan/kernel/conf"
+ )
+ 
++func TestStableUpdateUsesUnlockGitHubRelease(t *testing.T) {
++	originalConf := Conf
++	Conf = NewAppConf()
++	Conf.System = conf.NewSystem()
++	Conf.System.UpdateChannel = conf.UpdateChannelStable
++
++	githubReleasesLock.Lock()
++	originalReleases := cachedGitHubReleases
++	originalCacheTime := githubReleasesCacheTime
++	cachedGitHubReleases = []*githubRelease{{TagName: "v9.9.9"}}
++	githubReleasesCacheTime = time.Now().Unix()
++	githubReleasesLock.Unlock()
++
++	t.Cleanup(func() {
++		Conf = originalConf
++		githubReleasesLock.Lock()
++		cachedGitHubReleases = originalReleases
++		githubReleasesCacheTime = originalCacheTime
++		githubReleasesLock.Unlock()
++	})
++
++	release, err := getUpdateRelease(false)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if "9.9.9" != release.Version {
++		t.Fatalf("unexpected stable version: %q", release.Version)
++	}
++	const wantURL = "https://github.com/appdev/siyuan-unlock/releases/tag/v9.9.9"
++	if wantURL != release.ReleaseURL {
++		t.Fatalf("unexpected stable release URL: %q", release.ReleaseURL)
++	}
++}
++
+ func TestIsReleaseAllowed(t *testing.T) {
+ 	tests := []struct {
+ 		channel string

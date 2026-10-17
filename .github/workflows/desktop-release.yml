@@ -96,6 +96,20 @@ jobs:
         with:
           path: siyuan-note
 
+      - name: Verify patch set for version
+        shell: bash
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::version must look like v3.8.7, got '${VERSION}'"
+            exit 1
+          fi
+          if [[ ! -d "siyuan-note/patches/${VERSION}/siyuan" ]]; then
+            echo "::error::no patch set for ${VERSION}; add patches/${VERSION}/siyuan before building it"
+            exit 1
+          fi
+
       - name: clone origin and apply patches
         shell: bash
         run: |
@@ -112,11 +126,12 @@ jobs:
           git clone --branch "${{ github.event.inputs.version }}" --depth=1 https://github.com/siyuan-note/siyuan.git
           cd siyuan
 
-          git apply "${workspace}/siyuan-note/patches/siyuan/disable-update.patch"
-          git apply "${workspace}/siyuan-note/patches/siyuan/default-config.patch"
-          git apply "${workspace}/siyuan-note/patches/siyuan/mock-vip-user.patch"
-          git apply "${workspace}/siyuan-note/patches/siyuan/hide-account-entry.patch"
-          git apply "${workspace}/siyuan-note/patches/siyuan/first-launch-notice.patch"
+          patch_dir="${workspace}/siyuan-note/patches/${{ github.event.inputs.version }}/siyuan"
+          git apply "${patch_dir}/disable-update.patch"
+          git apply "${patch_dir}/default-config.patch"
+          git apply "${patch_dir}/mock-vip-user.patch"
+          git apply "${patch_dir}/hide-account-entry.patch"
+          git apply "${patch_dir}/first-launch-notice.patch"
 
           git status
 
